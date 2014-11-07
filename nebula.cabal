@@ -1,0 +1,12 @@
+Name:                nebula
+Version:             0.0
+Synopsis:            Toy remote file storage server.
+Description:         Toy remote file storage server.
+License:             ISC
+License-file:        LICENSE
+Author:              Kyle Isom
+Maintainer:          Kyle Isom <kyle@tyrfingr.is>
+Build-Depends:       base Crypto
+
+Executable:          nebula
+Main-is:             Nebula.hs
