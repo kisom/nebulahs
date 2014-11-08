@@ -1,8 +1,8 @@
-> import Control.Monad
 > import Crypto.Hash.SHA256 as SHA256
-> import qualified Data.ByteString as BS
+> import qualified Data.ByteString.Char8 as BS
 > import qualified Data.ByteString.Base16 (encode, decode)
-> import System.IO.Unsafe
+> import System.Directory as Dir
+> import System.IO.Unsafe as Unsafe
 
 Introduction
 ------------
@@ -66,44 +66,93 @@ to explore with this are:
 > main = do
 >    Prelude.putStrLn "Les nuages noirs Font la mer noire."
 
-The `fileHash` function has been challenging to write. The core problem is
-this: how do I read the contents of a file, compute the SHA256 digest of
-this, and then return a hex-encoded string containing the SHA256 digest?
 
-Ideally, this would have a type of
+Of ByteStrings and Things
+-------------------------
 
-```haskell
-fileHash :: FilePath -> Maybe String
-```
+Nebula uses the `Char8` byte strings. Files are treated as binary
+content, which means that they can be safely represented as bytes, or
+`Char`s, as it were.
 
-A `Nothing` value would indicate that there was an error reading the
-file; maybe the file doesn't exist.
+Core Functions
+--------------
 
-Unfortunately, based on what I know thus far in Haskell, I have to resort
-to `unsafePerformIO`. Is this a huge warning bell I hear going off in
-my head? Why, yes it is, gentle reader.
+There are two core functions; these directly provide the functionality
+desired of `Nebula`. Once these two functions are sketched out, the
+remainder of the program falls into place.
 
-> fileHash path = Data.ByteString.Base16.encode $ SHA256.hash contents
->     where contents = unsafePerformIO $ BS.readFile path
+The first of these functions is `readFile`. Given a SHA-256 digest
+identifying the file, Nebula should retrieve the contents of the
+file. The type definition expresses the intended behaviour: given a
+`ByteString` that identifies a SHA-256 digest, return a `Maybe
+ByteString` where a value of `Nothing` is indicative of a failure to
+read the file.
 
-As mentioned in the introduction, a file path is placed in a directory
-where the first two bytes (or four characters in a hex-encoded string)
-are the parent directory. `hashPath` takes a hash, and generates this
-same path structure.
+> readFile :: BS.ByteString -> Maybe BS.ByteString
+> readFile digest =
 
-> -- hashPath :: BS.ByteString -> FilePath
-> hashPath h = BS.append (BS.take 4 h) $ BS.append sep (BS.drop 4 h)
+Given the digest, we'll need to convert it into a file path.
 
-This fills me with shame. There **has** to be a better way.
+>     Just . Unsafe.unsafePerformIO $ BS.readFile $ pathFromDigest digest
 
->     where sep = BS.replicate 1 47
+Now that there is a definition for `readFile`, the `pathFromDigest`
+function needs to defined. This takes a digest (which is a
+`ByteString`) and returns a `FilePath`.
 
-Getting the parent directory of a file means extracting the first two
-bytes from the digest.
+> pathFromDigest :: BS.ByteString -> FilePath
+> pathFromDigest digest =
+>   baseFilePath ++ (take 4 digest') ++ "/" ++ (drop 4 digest')
 
-> hashPathParent h = BS.take 4 h
+In order to return a `FilePath`, the digest must be unpacked from the
+`ByteString`.
 
-The `FileBase` type indicates whether the digest is referring to the
-content or metadata of an identifier.
+>   where digest' = BS.unpack digest
 
-> data FileBase a = Content a | MetaData a deriving (Show)
+The `baseFilePath` value has the type `FilePath`, and contains the
+root for where files should be stored in Nebula.
+
+> baseFilePath :: FilePath
+> baseFilePath = "/tmp/nebula/files/"
+
+The other core function is `writeFile`, which takes a `ByteString` and
+stores it in the appropriate path. It should return a `IO ()`
+indicating that the file was successfully written.
+
+> writeFile :: BS.ByteString -> IO ()
+> writeFile content = do
+>   createParents digest
+>   BS.writeFile path content
+>   where digest = digestHex content
+>         path   = pathFromDigest digest
+
+In order to derive the digest, there needs to be a function that
+performs the SHA-256 hash of the content and returns the hex-encoded
+form. It should take a `ByteString` and return a `ByteString`.
+
+> digestHex :: BS.ByteString -> BS.ByteString
+> digestHex content =
+>   BS.pack . BS.unpack . Data.ByteString.Base16.encode $ SHA256.hash content
+
+At this stage, attempts to write files will fail: the parent directory
+will not exist. The `createParents` function will create the necessary
+parent directories as needed.
+
+> createParents :: BS.ByteString -> IO ()
+> createParents digest =
+>   Dir.createDirectoryIfMissing True $ parentFromDigest digest
+
+Analogous to the `pathFromDigest` function is the `parentFromDigest`
+function, which omits the final file name.
+
+> parentFromDigest :: BS.ByteString -> FilePath
+> parentFromDigest digest =
+>   baseFilePath ++ (take 4 $ BS.unpack digest)
+
+
+Looking skyward
+---------------
+
+With the two core functions completed, the base of Nebula is
+done. This handles the interaction from receiving some data to
+handling the file system flow. Now it is time to look up and figure
+out how to get data to these functions.
