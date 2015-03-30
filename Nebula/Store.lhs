@@ -25,10 +25,4 @@ entry.
 
 > type Owner = String
 
-A file represents a named revision of a content blob.
-
-> data File = File { fileID :: Identifier
->                  , filePath :: FilePath
->                  , fileOwner :: Identifier
-> }
 
