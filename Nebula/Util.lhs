@@ -1,9 +1,12 @@
 > module Nebula.Util (
 >   isValidHash
 > , isValidUUID
+> , getTime
 > ) where
 
 > import qualified Data.UUID as UUID
+> import qualified Data.Int as Int
+> import qualified Data.Time.Exts.Unix as Time
 
 This module contains various utility functions to be utilised across
 Nebula.
@@ -30,3 +33,8 @@ the UUID package is used.
 >   Nothing -> False
 >   Just _  -> True
 >   where parsed = UUID.fromString uuid
+
+Nebula also uses integer Unix timestamps.
+
+> getTime :: IO Int.Int64
+> getTime = fmap Time.unixBase Time.getCurrentUnixDateTimeNanos

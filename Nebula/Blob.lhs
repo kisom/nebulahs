@@ -4,6 +4,7 @@
 > , hashBlob
 > , writeBlob
 > , readBlob
+> , toBytes, fromBytes
 > ) where
 >
 > import Crypto.Hash.SHA256 as SHA256
@@ -71,3 +72,6 @@ looking up the associated hash if so.
 >   where valid = Util.isValidHash hashed
 >         path = hashPath p hashed
 
+> toBytes :: String -> BS.ByteString
+> toBytes = BS.pack
+> fromBytes = BS.unpack
