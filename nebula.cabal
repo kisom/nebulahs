@@ -51,25 +51,53 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 
+library
+  -- Base language which the package is written in.
+  default-language:    Haskell2010
+
+  -- Directories containing source files.
+  hs-source-dirs:    .
+
+  -- Modules exported by the library.
+  exposed-modules:   Nebula.Store
+                     , Nebula.Blob
+                     , Nebula.Entry
+                     , Nebula.Util
+
+  -- Other library packages from which modules are imported.
+  build-depends:       base >=4.6 && <4.7
+                     , cryptohash >=0.11 && <0.12
+                     , bytestring >=0.10 && <0.11
+                     , base16-bytestring >= 0.1 && <0.2
+                     , directory >= 1 && < 2
+                     , filepath >= 1 && < 2
+                     , uuid >= 1 && < 2
+                     , time-exts >= 2 && < 3
+                     , split
+
+  -- LANGUAGE extensions used by modules in this package.
+  other-extensions: OverloadedStrings
+                     
+
 executable nebula
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.lhs
   
   -- Modules included in this executable, other than Main.
-  -- other-modules:       Nebula.Store
+  -- other-modules:
   
   -- LANGUAGE extensions used by modules in this package.
-  other-extensions:    OverloadedStrings
+  other-extensions: OverloadedStrings
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.7
-                     , cryptohash >=0.11 && <0.12
-                     , bytestring >=0.10 && <0.11
-                     , base16-bytestring >=0.1 && <0.2
+                     , nebula
+                     , scotty >= 0.9.0 && < 0.10.0
+                     , aeson >= 0.7 && < 0.8
+                     , text >= 0.11 && < 0.12
   
   -- Directories containing source files.
   hs-source-dirs:      .
-                     , Nebula
   
   -- Base language which the package is written in.
   default-language:    Haskell2010

@@ -1,28 +1,23 @@
+> {-# LANGUAGE OverloadedStrings #-}
 > module Nebula.Store (
->     File, fileID, filePath, fileOwner 
->   , Identifier
->   , Owner
-> )
-> where
+>   StoreContext
+> , defaultContext
+> ) where
+>
+> import qualified Nebula.Blob as Blob
+> import qualified Nebula.Entry as Entry
 
 The file store contains the file store objects. A `StoreContext`
 contains information about a store, such as what paths to store
 things.
 
-> data StoreContext = StoreContext {
->   storeFiles   :: FilePath -- path to file entries directory
-> , storeMeta    :: FilePath -- path to metadata directory
-> , storeEntries :: FilePath -- path to entry storage
-> }
+> data StoreContext = StoreContext { storeFiles   :: FilePath -- path to file entries directory
+>                                  , storeEntries :: FilePath -- path to entry storage
+> } deriving (Show, Read)
 
-An `Identifier` is a string that contains a unique identifier for an
-entry.
+The default context takes place in the current working directory.
 
-> type Identifier = String
+> defaultContext :: StoreContext
+> defaultContext = StoreContext "nebula-store" "nebula-store"
 
-An `Owner` is a unique identifier indicating ownership of a file or
-entry.
-
-> type Owner = String
-
-
+Uploading a blob requires that the blob be 
