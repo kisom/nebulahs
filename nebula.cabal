@@ -56,7 +56,7 @@ library
   default-language:    Haskell2010
 
   -- Directories containing source files.
-  hs-source-dirs:    .
+  hs-source-dirs:    src
 
   -- Modules exported by the library.
   exposed-modules:   Nebula.Store
@@ -93,11 +93,12 @@ executable nebula
   build-depends:       base >=4.6 && <4.7
                      , nebula
                      , scotty >= 0.9.0 && < 0.10.0
+                     , transformers < 1.0
                      , aeson >= 0.7 && < 0.8
                      , text >= 0.11 && < 0.12
   
   -- Directories containing source files.
-  hs-source-dirs:      .
+  hs-source-dirs:      nebula-http
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
