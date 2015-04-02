@@ -55,9 +55,12 @@ users have with blobs.
 -}
 module Nebula.Entry
     (
+      -- * Entry accessors
       Entry
     , newEntry
-
+    , entryID
+    , target
+      
       -- * Entry persistence
     , writeEntry
     , readEntry
@@ -86,7 +89,7 @@ import Nebula.Util as Util
 -- a blob or an entry.
 data Entry = Entry
              { -- | A UUID identifying this entry.
-               id      :: !String
+               entryID :: !String
                
                -- | What 'Entry' or blob does this refer to?
              , target  :: !String
@@ -228,13 +231,13 @@ getLineage p id = do
 
 -- | proxyEntry creates a reference to the entry, removing any history
 -- from it. The resulting entry will have no reference to a parent.
-proxyEntry :: Maybe Entry       -- ^ Entry to proxy
-           -> IO (Maybe Entry)  -- ^ Proxied entry
-proxyEntry = flip proxy Nothing
+proxyEntry :: Entry               -- ^ Entry to proxy
+           -> IO (Maybe Entry)    -- ^ Proxied entry
+proxyEntry (Entry id _ _ _) = newEntry id Nothing
 
 proxy :: Maybe Entry -> Maybe String -> IO (Maybe Entry)
 proxy Nothing _ = return Nothing
-proxy (Just (Entry id _ _ _)) parent = newEntry id parent
+
 
 {- A whole lineage may be proxied: -}
 

@@ -21,15 +21,21 @@
 
 module Nebula.Store
     (
-      -- * Functions for dealing with a store's context.
+      -- * Store context
       StoreContext
     , defaultContext
+
+      -- * User API for dealing with entries
+    , resolveTarget
+    , uploadBlob
+    , proxyEntry
 ) where
 
 import qualified Data.ByteString.Char8 as BS
 
 import qualified Nebula.Blob as Blob
 import qualified Nebula.Entry as Entry
+import qualified Nebula.Util as Util
 
 {-
 The file store contains the file store objects. A `StoreContext`
@@ -38,7 +44,7 @@ things.
 -}
 
 -- |StoreContext contains the parent directories for the nebula store.
-data StoreContext = StoreContext { storeFiles   :: FilePath -- ^ path to file entries directory
+data StoreContext = StoreContext { storeBlobs   :: FilePath -- ^ path to blobs directory
                                  , storeEntries :: FilePath -- ^ path to entry storage
 } deriving (Show, Read)
 
@@ -49,9 +55,51 @@ data StoreContext = StoreContext { storeFiles   :: FilePath -- ^ path to file en
 defaultContext :: StoreContext  -- ^ Returns a constant context.
 defaultContext = StoreContext "nebula-store" "nebula-store"
 
+-- | @resolveTarget@ takes a UUID identifying an entry, and attempts
+-- to retrieve the blob it refers to.
+resolveTarget :: String                      -- ^ Entry identifier
+                 -> IO (Maybe BS.ByteString) -- ^ Contents of blob
+resolveTarget uuid =
+  if Util.isValidUUID uuid
+  then do
+    entry <- Entry.readEntry (storeEntries defaultContext) uuid
+    case entry of
+     Nothing    -> return Nothing
+     Just entry -> do
+       let target = Entry.target entry
+       if Util.isValidUUID target then resolveTarget target
+       else if Util.isValidHash target then Blob.readBlob (storeBlobs defaultContext) target
+            else return Nothing
+  else return Nothing
+
+
 {- Uploading a blob requires that the blob be first written, and a new
    entry built from this. -}
 
--- > uploadBlob :: BS.ByteString -> Maybe String -> IO (Maybe String)
--- > uploadBlob blob p = do
--- >   hashed <- Blob.writeBlob (defaultContext 
+uploadBlob :: BS.ByteString -> Maybe String -> IO (Maybe String)
+uploadBlob blob p = do
+  hashed <- Blob.writeBlob (storeBlobs defaultContext) blob
+  entry  <- Entry.newEntry hashed p
+  case entry of
+   Nothing -> return Nothing
+   Just e  -> do
+     Entry.writeEntry (storeEntries defaultContext) (return e)
+     return $ Just (Entry.entryID e)
+
+-- | proxyEntry takes a UUID and creates a proxy for that entry.
+proxyEntry :: String                -- ^ Identifier for entry to proxy
+              -> IO (Maybe String)  -- ^ Identifier for the proxy
+proxyEntry uuid = do
+  if Util.isValidUUID uuid
+    then do
+      entry   <- Entry.readEntry (storeEntries defaultContext) uuid
+      case entry of
+       Nothing    -> return Nothing
+       Just entry -> do
+         proxied <- Entry.proxyEntry entry
+         case proxied of
+          Nothing       -> return Nothing
+          Just proxied -> do
+            _ <- Entry.writeEntry (storeEntries defaultContext) (return proxied)
+            return . Just $ Entry.entryID proxied
+    else return Nothing
