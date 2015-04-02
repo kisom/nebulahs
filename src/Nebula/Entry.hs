@@ -245,16 +245,16 @@ proxy Nothing _ = return Nothing
 -- list of entries, with each each entry proxied to a corresponding
 -- entry in the original lineage.
 proxyLineage :: FilePath        -- ^ Parent directory containing entries
-                -> Maybe Entry  -- ^ Entry whose lineage should be proxied
+                -> Entry        -- ^ Entry whose lineage should be proxied
                 -> IO [Entry]   -- ^ Proxied lineage
-proxyLineage _ Nothing = return []
-proxyLineage p (Just (Entry id _ _ _)) = do
+proxyLineage p (Entry id _ _ _) = do
   lineage <- getLineage p id
-  proxyAll (reverse lineage) Nothing
+  proxied <- proxyAll (reverse lineage) Nothing
+  return $ reverse proxied
 
 proxyAll :: [String] -> Maybe String -> IO [Entry]
 proxyAll [] _ = return []
 proxyAll (t:ts) p = do
   entry@(Entry id _ _ _) <- createEntry t p
   parents <- proxyAll ts (Just id)
-  return . reverse $! entry : parents
+  return $! entry : parents

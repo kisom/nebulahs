@@ -103,3 +103,23 @@ proxyEntry uuid = do
             _ <- Entry.writeEntry (storeEntries defaultContext) (return proxied)
             return . Just $ Entry.entryID proxied
     else return Nothing
+
+writeProxied :: Entry.Entry -> IO String
+writeProxied e = Entry.writeEntry (storeEntries defaultContext) (return e)
+
+-- | @proxyAll@ produces a proxied lineage for the entry specified by
+-- the UUID.
+proxyAll :: String          -- ^ Identifier for entry to proxy
+            -> IO [String]  -- ^ List of UUIDs for proxied entries
+proxyAll uuid = do
+  if Util.isValidUUID uuid
+     then do
+       entry <- Entry.readEntry (storeEntries defaultContext) uuid
+       case entry of
+        Nothing    -> return []
+        Just entry -> do
+          proxied <- Entry.proxyLineage (storeEntries defaultContext) entry
+          mapM_ writeProxied proxied
+          return $ map Entry.entryID proxied
+    else return []
+    
